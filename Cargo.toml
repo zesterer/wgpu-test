@@ -1,0 +1,15 @@
+[package]
+name = "space"
+version = "0.1.0"
+authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+image = "0.22"
+winit = "0.22"
+wgpu = { path = "../wgpu-rs" }
+#wgpu = "0.4"
+glsl-to-spirv = "0.1"
+vek = "0.9"
+env_logger = "0.7"
+async-std = "1.5"
