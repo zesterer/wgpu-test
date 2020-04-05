@@ -21,6 +21,7 @@ pub struct Renderer {
 
     swap_chain_desc: wgpu::SwapChainDescriptor,
     swap_chain: wgpu::SwapChain,
+    swap_chain_frame: wgpu::SwapChainOutput,
 }
 
 impl Renderer {
@@ -47,9 +48,10 @@ impl Renderer {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
             width: win.inner_size().width,
             height: win.inner_size().height,
-            present_mode: wgpu::PresentMode::Fifo,
+            present_mode: wgpu::PresentMode::Mailbox,
         };
-        let swap_chain = device.create_swap_chain(&surface, &swap_chain_desc);
+        let mut swap_chain = device.create_swap_chain(&surface, &swap_chain_desc);
+        let swap_chain_frame = swap_chain.get_next_texture().unwrap();
 
         Self {
             surface,
@@ -59,6 +61,7 @@ impl Renderer {
 
             swap_chain_desc,
             swap_chain,
+            swap_chain_frame,
         }
     }
 
@@ -90,8 +93,6 @@ impl Renderer {
         let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             bind_group_layouts: &[&binding_layout],
         });
-
-        println!("HERE0!");
 
         let pipeline = P::Vertex::default().desc(|vertex_desc| {
             self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -131,8 +132,6 @@ impl Renderer {
             })
         });
 
-        println!("HERE1!");
-
         PipelineState {
             pipeline,
             binding_layout,
@@ -168,15 +167,18 @@ impl Renderer {
         }
     }
 
+    pub fn begin_frame(&mut self) {
+        self.swap_chain_frame = self.swap_chain.get_next_texture().unwrap();
+    }
+
     pub fn clear(&mut self, col: Rgba<f64>) {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: None,
         });
-        let frame = self.swap_chain.get_next_texture().unwrap();
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[
                 wgpu::RenderPassColorAttachmentDescriptor {
-                    attachment: &frame.view,
+                    attachment: &self.swap_chain_frame.view,
                     resolve_target: None,
                     load_op: wgpu::LoadOp::Clear,
                     store_op: wgpu::StoreOp::Store,
@@ -194,15 +196,13 @@ impl Renderer {
             label: None,
         });
 
-        let frame = self.swap_chain.get_next_texture().unwrap();
-
         for task in tasks {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 color_attachments: &[
                     wgpu::RenderPassColorAttachmentDescriptor {
-                        attachment: &frame.view,
+                        attachment: &self.swap_chain_frame.view,
                         resolve_target: None,
-                        load_op: wgpu::LoadOp::Clear,
+                        load_op: wgpu::LoadOp::Load,
                         store_op: wgpu::StoreOp::Store,
                         clear_color: wgpu::Color::TRANSPARENT,
                     },

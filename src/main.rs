@@ -75,14 +75,15 @@ fn main() {
                 _ => {},
             },
             Event::NewEvents(_) => *cf = ControlFlow::Wait,
-            Event::MainEventsCleared => {
+            Event::RedrawRequested(_) => {
+                renderer.begin_frame();
                 renderer.clear(Rgba::white());
                 renderer.render(RenderTask {
                     model: &model,
                     pipeline: &pipeline,
                     bindings: &bindings,
                 });
-                *cf = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(1000 / 60))
+                *cf = ControlFlow::Poll;
             },
             _ => {},
         }
